@@ -1,0 +1,42 @@
+services:
+  mock_api:
+    build: ./mock_api
+    container_name: corescout_api
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+      start_period: 10s
+
+  pipeline:
+    build: ./pipeline
+    container_name: corescout_pipeline
+    depends_on:
+      mock_api:
+        condition: service_healthy
+    environment:
+      CORESCOUT_API_URL: "http://mock_api:8000"
+      DUCKDB_PATH: "/data/corescout.duckdb"
+    volumes:
+      - ./data:/data
+    command: python pipeline.py
+
+  dbt:
+    image: python:3.12-slim
+    container_name: corescout_dbt
+    depends_on:
+      - pipeline
+    working_dir: /dbt
+    environment:
+      DUCKDB_PATH: "/data/corescout.duckdb"
+    volumes:
+      - ./dbt_project:/dbt
+      - ./data:/data
+    command: >
+      bash -c "pip install -r requirements.txt -q &&
+               dbt deps &&
+               dbt run --target prod --profiles-dir . &&
+               dbt test --target prod --profiles-dir ."
