@@ -51,7 +51,7 @@ REGIONS = {
 MARKETS = {
     "US": {"region": "america", "locale": "en_US"},
     "AR": {"region": "america", "locale": "es_AR"},
-    "VE": {"region": "america", "locale": "es_VE"},
+    "VE": {"region": "america", "locale": "es_ES"},
     "DE": {"region": "europe", "locale": "de_DE"},
     "ES": {"region": "europe", "locale": "es_ES"},
 }
