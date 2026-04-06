@@ -1,7 +1,7 @@
 from datetime import date, timedelta
 
 from fastapi import FastAPI, Query
-
+from generators.orders import generate_orders
 from generators.reference import (
     get_buyers,
     get_categories,
@@ -86,13 +86,4 @@ def orders(
     page: int = Query(default=1, ge=1),
     page_size: int = Query(default=1000, ge=1, le=5000),
 ):
-    # Stub — returns empty until Phase 3
-    return {
-        "data": [],
-        "page": page,
-        "page_size": page_size,
-        "total": 0,
-        "total_pages": 0,
-        "has_more": False,
-        "event_date": event_date.isoformat(),
-    }
+    return generate_orders(event_date, page, page_size)
