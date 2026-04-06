@@ -7,11 +7,37 @@ from datetime import date
 
 BASE_SEED = 42
 LAUNCH_DATE = date(2025, 1, 1)
-NUM_SELLERS = 200
-NUM_BUYERS = 2_000
+# Mature market baseline for order volume calculations
+# (not a cap — actual volume depends on growth curve)
 NUM_PRODUCTS = 5_000
 BASE_ORDERS_PER_DAY = 500
 RETENTION_PERIOD_DAYS = 732
+
+# ---------------------------------------------------------------------------
+# Entity Growth
+#
+# Instead of fixed caps, entities grow year over year with variance.
+# Each entity type has its own base growth rate and variance — buyers grow
+# fastest (signups are high volume), sellers grow slowest (harder to onboard
+# professional sellers than to get consumers to sign up).
+#
+# The same annual variance pattern used for orders applies here:
+# each year gets a deterministic random modifier so some years grow faster,
+# some slower, occasionally even shrinking.
+# ---------------------------------------------------------------------------
+INITIAL_SELLERS = 200
+INITIAL_BUYERS = 2000
+INITIAL_PRODUCTS = 5000
+
+SELLER_GROWTH_RATE = 1.15  # 115% baseline YoY
+SELLER_GROWTH_VARIANCE = 0.10  # ±10% randomness per year
+
+BUYER_GROWTH_RATE = 2.80  # 280% baseline YoY (consumer signups grow fast)
+BUYER_GROWTH_VARIANCE = 0.20  # ±20% randomness per year
+
+PRODUCT_GROWTH_RATE = 4.25  # 425% baseline YoY
+PRODUCT_GROWTH_VARIANCE = 0.15  # ±15% randomness per year
+
 
 # ------------------------------------------------------------------------------------------------
 # Markets & Regions

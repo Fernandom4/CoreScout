@@ -307,3 +307,53 @@ def generate_product_name(subcategory: str, rng: random.Random, faker_instance) 
         brand = rng.choice(brands)
         descriptor = faker_instance.word().capitalize()
         return f"{brand} {descriptor}"
+
+
+# ---------------------------------------------------------------------------
+# Entity count growth
+#
+# Returns how many of a given entity type (sellers, buyers, products) exist
+# as of a given date. Each entity type starts at its initial count and grows
+# year over year with per-year randomness — same pattern as order volume.
+#
+# This means the catalog grows realistically over time:
+# some years more sellers join, some years fewer.
+# ---------------------------------------------------------------------------
+def get_entity_count(
+    d: date,
+    initial: int,
+    growth_rate: float,
+    variance: float,
+    seed_offset: int,
+) -> int:
+    """Return the number of entities that exist as of a given date.
+
+    Args:
+        d:           the date to compute the count for
+        initial:     number of entities at launch
+        growth_rate: baseline annual growth rate e.g. 0.15 for 15%
+        variance:    annual variance e.g. 0.10 for ±10%
+        seed_offset: unique offset per entity type to avoid correlated randomness
+                     use different values per type e.g. 100 for sellers,
+                     200 for buyers, 300 for products
+    """
+    years_since_launch = (d.year - LAUNCH_DATE.year) + (d.month - LAUNCH_DATE.month) / 12
+
+    if years_since_launch <= 0:
+        return initial
+
+    count = float(initial)
+    full_years = int(years_since_launch)
+
+    for year_offset in range(full_years + 1):
+        year_rng = random.Random(BASE_SEED + seed_offset + year_offset)
+        year_variance = year_rng.uniform(-variance, variance)
+        year_growth = 1.0 + growth_rate + year_variance
+
+        if year_offset < full_years:
+            count *= year_growth
+        else:
+            partial = years_since_launch - full_years
+            count *= 1.0 + (year_growth - 1.0) * partial
+
+    return max(initial, round(count))
