@@ -286,9 +286,9 @@ HOUR_WEIGHTS = [
     0.5,  # 18-23: evening peak at 19:00
 ]
 
-# Business launched at 30% capacity, grows linearly to 100% over 24 months
-GROWTH_START = 0.30
-GROWTH_MONTHS = 24
+LAUNCH_DAILY_ORDERS = 250  # actual orders on day 1
+ANNUAL_GROWTH_RATE = 0.25  # baseline 25% YoY growth
+ANNUAL_GROWTH_VARIANCE = 0.20  # ±20% randomness per year, can produce degrowth
 
 # ---------------------------------------------------------------------------
 # Subcategory Seasonality
