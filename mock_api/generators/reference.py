@@ -91,9 +91,8 @@ def _build_sellers(as_of_date: date) -> list[dict]:
             r = rng.random()
             tier = tier_names[next(i for i, c in enumerate(tier_cum) if r <= c)]
 
-            # joined_date: spread across time proportional to growth
-            days_since_launch = (as_of_date - LAUNCH_DATE).days
-            joined_date = LAUNCH_DATE + timedelta(days=rng.randint(0, max(1, days_since_launch)))
+            # joined_date:
+            joined_date = LAUNCH_DATE if idx > INITIAL_SELLERS else as_of_date
 
             sellers.append(
                 {
@@ -160,10 +159,8 @@ def _build_buyers(as_of_date: date) -> list[dict]:
         fake = Faker(locale)
         fake.seed_instance(BASE_SEED + 1 + idx)
 
-        days_since_launch = (as_of_date - LAUNCH_DATE).days
-
         for _ in range(count):
-            signup_date = LAUNCH_DATE + timedelta(days=rng.randint(0, max(1, days_since_launch)))
+            signup_date = LAUNCH_DATE if idx < INITIAL_BUYERS else as_of_date
 
             buyers.append(
                 {
@@ -306,8 +303,7 @@ def _build_products(as_of_date: date) -> list[dict]:
         title = generate_product_name(subcategory, rng, fake)
 
         seller_joined = date.fromisoformat(seller["joined_date"])
-        days_available = (as_of_date - seller_joined).days
-        listed_date = seller_joined + timedelta(days=rng.randint(0, max(1, days_available)))
+        listed_date = LAUNCH_DATE if idx < INITIAL_PRODUCTS else as_of_date
 
         products.append(
             {

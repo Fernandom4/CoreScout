@@ -1,0 +1,2 @@
+[destination.duckdb]
+database = "/data/corescout.duckdb"
