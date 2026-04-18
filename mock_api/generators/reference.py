@@ -53,22 +53,6 @@ def _build_sellers(as_of_date: date) -> list[dict]:
         seed_offset=100,
     )
 
-    rng = random.Random(BASE_SEED)
-
-    # Distribute sellers across markets by size
-    total_weight = sum(MARKET_SIZE_MULT.values())
-    market_counts = {}
-    allocated = 0
-    markets = list(MARKET_SIZE_MULT.keys())
-
-    for i, market in enumerate(markets):
-        if i == len(markets) - 1:
-            market_counts[market] = num_sellers - allocated
-        else:
-            count = round(num_sellers * MARKET_SIZE_MULT[market] / total_weight)
-            market_counts[market] = count
-            allocated += count
-
     # Build tier cumulative weights
     tier_names = list(SELLER_TIERS.keys())
     tier_weights = [SELLER_TIERS[t]["distribution_weight"] for t in tier_names]
@@ -79,32 +63,42 @@ def _build_sellers(as_of_date: date) -> list[dict]:
         running += w / total_weight_tiers
         tier_cum.append(running)
 
+    # Build market cumulative weights — fixed, never changes
+    markets = list(MARKET_SIZE_MULT.keys())
+    total_market_weight = sum(MARKET_SIZE_MULT.values())
+    market_cum = []
+    running = 0.0
+    for market in markets:
+        running += MARKET_SIZE_MULT[market] / total_market_weight
+        market_cum.append(running)
+
     sellers = []
-    idx = 0
-    for market, count in market_counts.items():
-        locale = MARKETS[market]["locale"]
-        fake = Faker(locale)
+    for idx in range(num_sellers):
+        seller_rng = random.Random(BASE_SEED + idx)
+
+        # Assign market using fixed boundaries based on idx alone
+        market_pos = (idx % 1000) / 1000
+        market_idx = bisect.bisect_left(market_cum, market_pos)
+        market_idx = min(market_idx, len(markets) - 1)
+        market = markets[market_idx]
+
+        # Use English-only Faker seeded per idx — stable forever
+        fake = Faker()
         fake.seed_instance(BASE_SEED + idx)
 
-        for _ in range(count):
-            # Pick tier
-            r = rng.random()
-            tier = tier_names[next(i for i, c in enumerate(tier_cum) if r <= c)]
+        tier = tier_names[next(i for i, c in enumerate(tier_cum) if seller_rng.random() <= c)]
+        joined_date = LAUNCH_DATE if idx < INITIAL_SELLERS else as_of_date
 
-            # joined_date:
-            joined_date = LAUNCH_DATE if idx > INITIAL_SELLERS else as_of_date
-
-            sellers.append(
-                {
-                    "seller_id": stable_id("seller", idx),
-                    "business_name": fake.company(),
-                    "country": market,
-                    "region": MARKETS[market]["region"],
-                    "seller_tier": tier,
-                    "joined_date": joined_date.isoformat(),
-                }
-            )
-            idx += 1
+        sellers.append(
+            {
+                "seller_id": stable_id("seller", idx),
+                "business_name": fake.company(),
+                "country": market,
+                "region": MARKETS[market]["region"],
+                "seller_tier": tier,
+                "joined_date": joined_date.isoformat(),
+            }
+        )
 
     return sellers
 
@@ -136,43 +130,41 @@ def _build_buyers(as_of_date: date) -> list[dict]:
         seed_offset=200,
     )
 
-    rng = random.Random(BASE_SEED + 1)
-
-    # Distribute buyers across markets by size
-    total_weight = sum(MARKET_SIZE_MULT.values())
-    market_counts = {}
-    allocated = 0
+    # Build market cumulative weights — fixed, never changes
     markets = list(MARKET_SIZE_MULT.keys())
-
-    for i, market in enumerate(markets):
-        if i == len(markets) - 1:
-            market_counts[market] = num_buyers - allocated
-        else:
-            count = round(num_buyers * MARKET_SIZE_MULT[market] / total_weight)
-            market_counts[market] = count
-            allocated += count
+    total_market_weight = sum(MARKET_SIZE_MULT.values())
+    market_cum = []
+    running = 0.0
+    for market in markets:
+        running += MARKET_SIZE_MULT[market] / total_market_weight
+        market_cum.append(running)
 
     buyers = []
-    idx = 0
-    for market, count in market_counts.items():
-        locale = MARKETS[market]["locale"]
-        fake = Faker(locale)
+    for idx in range(num_buyers):
+        buyer_rng = random.Random(BASE_SEED + 1 + idx)
+
+        # Assign market using fixed boundaries based on idx alone
+        market_pos = (idx % 1000) / 1000
+        market_idx = bisect.bisect_left(market_cum, market_pos)
+        market_idx = min(market_idx, len(markets) - 1)
+        market = markets[market_idx]
+
+        # Use English-only Faker seeded per idx — stable forever
+        fake = Faker()
         fake.seed_instance(BASE_SEED + 1 + idx)
 
-        for _ in range(count):
-            signup_date = LAUNCH_DATE if idx < INITIAL_BUYERS else as_of_date
+        signup_date = LAUNCH_DATE if idx < INITIAL_BUYERS else as_of_date
 
-            buyers.append(
-                {
-                    "buyer_id": stable_id("buyer", idx),
-                    "username": fake.user_name(),
-                    "email": fake.email(),
-                    "country": market,
-                    "region": MARKETS[market]["region"],
-                    "signup_date": signup_date.isoformat(),
-                }
-            )
-            idx += 1
+        buyers.append(
+            {
+                "buyer_id": stable_id("buyer", idx),
+                "username": fake.user_name(),
+                "email": fake.email(),
+                "country": market,
+                "region": MARKETS[market]["region"],
+                "signup_date": signup_date.isoformat(),
+            }
+        )
 
     return buyers
 
@@ -273,10 +265,7 @@ def _build_products(as_of_date: date) -> list[dict]:
     sellers = _build_sellers(as_of_date)
     seller_zipf = build_cum_weights_zipf(len(sellers))
 
-    rng = random.Random(BASE_SEED + 2)
-
     fake = Faker()
-    fake.seed_instance(BASE_SEED + 2)
 
     subcategories = [
         (vertical, category, subcategory)
@@ -287,20 +276,21 @@ def _build_products(as_of_date: date) -> list[dict]:
 
     products = []
     for idx in range(num_products):
-        seller_idx = bisect.bisect_left(seller_zipf, rng.random())
+        product_rng = random.Random(BASE_SEED + 2 + idx)
+        fake.seed_instance(BASE_SEED + 2 + idx)
+        seller_idx = bisect.bisect_left(seller_zipf, product_rng.random())
         seller_idx = min(seller_idx, len(sellers) - 1)
         seller = sellers[seller_idx]
 
-        vertical, category, subcategory = rng.choice(subcategories)
-
+        vertical, category, subcategory = product_rng.choice(subcategories)
         raw_size = PARCEL_SIZE[subcategory]
         if raw_size == "mixed":
-            parcel_size = rng.choice(["small", "large"])
+            parcel_size = product_rng.choice(["small", "large"])
         else:
             parcel_size = raw_size
 
-        price = generate_price(subcategory, rng)
-        title = generate_product_name(subcategory, rng, fake)
+        price = generate_price(subcategory, product_rng)
+        title = generate_product_name(subcategory, product_rng, fake)
 
         seller_joined = date.fromisoformat(seller["joined_date"])
         listed_date = LAUNCH_DATE if idx < INITIAL_PRODUCTS else as_of_date

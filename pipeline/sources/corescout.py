@@ -45,7 +45,7 @@ def _paginate(endpoint: str, params: dict) -> Iterator[list]:
 
 @dlt.resource(
     name="sellers",
-    write_disposition="replace",
+    write_disposition="merge",
     primary_key="seller_id",
 )
 def sellers_resource(as_of_date: date = None) -> Iterator[list]:
@@ -63,7 +63,7 @@ def sellers_resource(as_of_date: date = None) -> Iterator[list]:
 
 @dlt.resource(
     name="buyers",
-    write_disposition="replace",
+    write_disposition="merge",
     primary_key="buyer_id",
 )
 def buyers_resource(as_of_date: date = None) -> Iterator[list]:
@@ -81,7 +81,7 @@ def buyers_resource(as_of_date: date = None) -> Iterator[list]:
 
 @dlt.resource(
     name="categories",
-    write_disposition="replace",
+    write_disposition="merge",
     primary_key="category_id",
 )
 def categories_resource() -> Iterator[list]:
@@ -91,7 +91,7 @@ def categories_resource() -> Iterator[list]:
 
 @dlt.resource(
     name="products",
-    write_disposition="replace",
+    write_disposition="merge",
     primary_key="product_id",
 )
 def products_resource(as_of_date: date = None) -> Iterator[list]:
